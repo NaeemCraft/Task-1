@@ -1,0 +1,83 @@
+TASK-1 
+Step 1: Set Up the Environment
+We ensured we had Python installed. If the sniffer is Windows, we might need administrative privileges to run it.
+
+Step 2: Basic Network Sniffer Code
+Here’s a basic implementation using Python's socket library:
+
+
+import socket
+import struct
+
+def parse_ethernet_header(data):
+    """Parse the Ethernet header."""
+    dest_mac, src_mac, proto = struct.unpack('! 6s 6s H', data[:14])
+    dest_mac = ':'.join(format(b, '02x') for b in dest_mac)
+    src_mac = ':'.join(format(b, '02x') for b in src_mac)
+    proto = socket.htons(proto)
+    return dest_mac, src_mac, proto, data[14:]
+
+def parse_ip_header(data):
+    """Parse the IP header."""
+    iph = struct.unpack('!BBHHHBBH4s4s', data[:20])
+    version_ihl = iph[0]
+    version = version_ihl >> 4
+    ihl = version_ihl & 0xF
+    ttl = iph[5]
+    proto = iph[6]
+    src = socket.inet_ntoa(iph[8])
+    target = socket.inet_ntoa(iph[9])
+    return version, ihl, ttl, proto, src, target, data[ihl * 4:]
+
+def main():
+    # Create a raw socket and bind it to the interface
+    conn = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
+    
+    print("Sniffer started. Press Ctrl+C to stop.\n")
+
+    try:
+        while True:
+            raw_data, addr = conn.recvfrom(65535)
+            dest_mac, src_mac, proto, eth_data = parse_ethernet_header(raw_data)
+            print(f"\nEthernet Frame:")
+            print(f"  Destination MAC: {dest_mac}, Source MAC: {src_mac}, Protocol: {proto}")
+
+            if proto == 8:  # IPv4
+                version, ihl, ttl, ip_proto, src, target, ip_data = parse_ip_header(eth_data)
+                print(f"  IPv4 Packet:")
+                print(f"    Version: {version}, Header Length: {ihl}, TTL: {ttl}")
+                print(f"    Protocol: {ip_proto}, Source: {src}, Target: {target}")
+
+    except KeyboardInterrupt:
+        print("\nSniffer stopped.")
+    finally:
+        conn.close()
+
+if __name__ == "__main__":
+    main()
+
+
+Step 3: Running the Sniffer
+Linux/macOS:
+Run the script with root privileges to access raw sockets:
+
+sudo python3 sniffer.py
+
+Windows:
+For Windows, use a library like Scapy instead of socket, as raw socket support is limited.
+
+Output Example
+The sniffer captures Ethernet frames, and if the protocol is IPv4, it parses the IP header:
+
+Ethernet Frame:
+  Destination MAC: ff:ff:ff:ff:ff:ff, Source MAC: 00:14:22:01:23:45, Protocol: 8
+  IPv4 Packet:
+    Version: 4, Header Length: 5, TTL: 128
+    Protocol: 6, Source: 192.168.1.10, Target: 192.168.1.1
+
+
+Features for Enhancement
+Add support for other protocols like TCP/UDP or ICMP.
+Save captured packets to a file for further analysis (e.g., in PCAP format).
+Use libraries like Scapy for easier packet parsing and analysis.
+
