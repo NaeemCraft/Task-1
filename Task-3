@@ -1,0 +1,130 @@
+TASK-3 
+
+
+I’ll create a sample C++ program with some security vulnerabilities, then review it, identify issues, and provide secure coding recommendations.
+
+Sample C++ Code with Vulnerabilities
+Here’s a simple program that manages user authentication:
+
+#include <iostream>
+#include <cstring>
+#include <fstream>
+
+using namespace std;
+
+void login() {
+    char username[20];
+    char password[20];
+
+    cout << "Enter username: ";
+    cin >> username;
+    cout << "Enter password: ";
+    cin >> password;
+
+    if (strcmp(username, "admin") == 0 && strcmp(password, "password123") == 0) {
+        cout << "Login successful!\n";
+    } else {
+        cout << "Invalid credentials.\n";
+    }
+}
+
+void readFile() {
+    char filename[50];
+    cout << "Enter filename to read: ";
+    cin >> filename;
+
+    ifstream file(filename);
+    if (file.is_open()) {
+        string line;
+        while (getline(file, line)) {
+            cout << line << endl;
+        }
+        file.close();
+    } else {
+        cout << "Could not open file.\n";
+    }
+}
+
+int main() {
+    int choice;
+    cout << "1. Login\n2. Read File\nEnter your choice: ";
+    cin >> choice;
+
+    if (choice == 1) {
+        login();
+    } else if (choice == 2) {
+        readFile();
+    } else {
+        cout << "Invalid choice.\n";
+    }
+
+    return 0;
+}
+
+
+Vulnerabilities in the Code
+Hardcoded Credentials:
+Using "admin" and "password123" as credentials is insecure.
+Anyone with access to the code can find and exploit this.
+Buffer Overflow:
+The username and password buffers (char[20]) are vulnerable to overflow if the user enters input longer than 19 characters.
+Improper Input Validation:
+The readFile() function allows users to input any filename. This could lead to directory traversal attacks if a user enters paths like ../../sensitive_data.
+Lack of Encryption:
+Passwords are compared in plaintext, which is insecure.
+Insecure File Handling:
+The program doesn’t check if the file is safe to open or belongs to an allowed directory.
+
+
+Secure Coding Recommendations
+1.Avoid Hardcoded Credentials:
+Use environment variables or secure configuration files to store sensitive data.
+Example:
+const string adminUsername = getenv("ADMIN_USERNAME");
+const string adminPassword = getenv("ADMIN_PASSWORD");
+2.Use Secure String Handling:
+Replace char arrays with safer alternatives like std::string.
+string username, password;
+cin >> username >> password;
+
+3.Input Validation:
+Validate the filename in readFile() to ensure only valid paths are accepted.
+Example:
+
+if (filename.find("..") != string::npos) {
+    cout << "Invalid filename.\n";
+    return;
+}
+
+4.Use Password Hashing:
+Store and compare hashed passwords using libraries like OpenSSL or bcrypt.
+Example:
+
+// Hash the user-entered password before comparison
+string hashedPassword = hashFunction(password);
+if (hashedPassword == storedHash) { /* proceed */ }
+
+5.Secure File Handling:
+Restrict file access to specific directories using absolute paths or sandboxing.
+
+Static Code Analysis Tools
+To automate the detection of vulnerabilities:
+Cppcheck:
+Detects common C++ issues, including buffer overflows and insecure practices.
+Example command:
+cppcheck sample.cpp
+
+
+Clang Static Analyzer:
+Built into the Clang compiler for detecting more complex vulnerabilities.
+Example command:
+clang --analyze sample.cpp
+
+Manual Review:
+Combine automated tools with a thorough review for best results.
+
+
+
+
+
+
